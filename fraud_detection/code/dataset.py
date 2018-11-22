@@ -18,7 +18,6 @@ includes the sampler for word2vec negative sampling
 import numpy as np
 import random
 # import scipy
-import os
 
 class Dataset(object):
     def __init__(self, random_walk_txt, node_type_mapping_txt, window_size):
@@ -30,11 +29,9 @@ class Dataset(object):
         index2type, type2indices = self.parse_node_type_mapping_txt(node_type_mapping_txt, self.nodeid2index)
         self.index2type = index2type
         self.type2indices = type2indices
-        self.node_context_pairs = node_context_pairs
+        self.node_context_pairs = np.array(node_context_pairs).T
         self.prepare_sampling_dist(index2frequency, index2type, type2indices)
         self.shffule()
-        self.count = 0
-        self.epoch = 1
 
     def parse_node_type_mapping_txt(self, node_type_mapping_txt, nodeid2index):
         #this method does not modify any class variables
@@ -103,18 +100,7 @@ class Dataset(object):
 
         #word_word=word_word.tocsr()
         return index2token, token2index, word_and_counts, index2frequency, node_context_pairs
-
-    def get_one_batch(self):
-        if self.count == len(self.node_context_pairs):  # 迭代一轮
-            self.count = 0
-            self.epoch += 1
-        node_context_pair = self.node_context_pairs[self.count]
-        self.count += 1
-        return node_context_pair
-
-    def get_batch(self, batch_size):
-        pairs = np.array([self.get_one_batch() for i in range(batch_size)])
-        return pairs[:, 0], pairs[:, 1]
+    
 
     def shffule(self):
         random.shuffle(self.node_context_pairs)
