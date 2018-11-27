@@ -19,8 +19,8 @@ class MetaPathGenerator:
         # self.agent_cidlist = dict()
         # self.cid_agentlist = dict()
 
-    # Load data
-    def read_data(self, dirpath):
+    # Load data for tripartite graph
+    def read_data_tripartite(self, dirpath):
 
         # Load user's information
         with open(dirpath + '/id_client.txt', 'r') as uf:
@@ -61,6 +61,30 @@ class MetaPathGenerator:
                     if o not in self.offer_partner:
                         self.offer_partner[o] = []
                     self.offer_partner[o].append(p)
+                    
+    
+    # Load data for bipartite graoh
+    def read_data_bipartite(self, dirpath):
+        
+        # load user's information
+        with open(dirpath + '/id_client.txt', 'r') as uf:
+            for line in uf:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    self.id_client[toks[0]] = toks[1].replace(" ", "")
+        
+        # load application_user information
+        with open(dirpath + '/partner_client.txt', 'r') as tuf:
+            for line in tuf:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    p, c = toks[0], toks[1]
+                    if p not in self.partner_client:
+                        self.partner_client[p] = []
+                    self.partner_client[p].append(c)
+                    if c not in self.client_partner:
+                        self.client_partner[c] = []
+                    self.client_partner[c].append(p)
 
     # Generate random walk path apcpa
     def generate_random_apcpa(self, outfilename, numwalks, walklenghth):
@@ -92,9 +116,32 @@ class MetaPathGenerator:
                         c1 = c1[cid]
                         outline += '\t' + self.id_client[c1]
                     outfile.write(outline + '\n')
+                    
+    # Generate randon walk path pcp
+    def generate_random_pcp(self, outfilename, numwalks, walklength):
+        with open(outfilename, 'w') as outfile:
+            for p in self.partner_client:
+                p0 = p
+                for i in xrange(0, numwalks):
+                    outline = p0
+                    for j in xrange(0, walklength):
+                        c = self.partner_client[p0]
+                        numc = len(c)
+                        cid = random.randrange(numc)
+                        c0 = c[cid]
+                        outline += '\t' + self.id_client[c0]
+                        p1 = self.client_partner[c0]
+                        nump = len(p1)
+                        pid = random.randrange(nump)
+                        p1 = p1[pid]
+                        outline += '\t' + p1
+                    outfile.write(outline + '\n')
+                    
 
-
-if __name__ == '__main__':
-    MPG = MetaPathGenerator()
-    MPG.read_data('/data/zy/youmi/FDMA/metapath/train')
-    MPG.generate_random_apcpa('/data/zy/youmi/FDMA/metapath/train/random_walk.txt', 1, 1)
+# =============================================================================
+# if __name__ == '__main__':
+#     MPG = MetaPathGenerator()
+#     MPG.read_data('/data/zy/youmi/FDMA/metapath/train')
+#     MPG.generate_random_apcpa('/data/zy/youmi/FDMA/metapath/train/random_walk.txt', 1, 1)
+# 
+# =============================================================================
