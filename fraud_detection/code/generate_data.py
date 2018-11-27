@@ -1,9 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import sys
-import os
 import pandas as pd
-import numpy as np
 from genMetaPaths import MetaPathGenerator
 from tqdm import *
 
@@ -12,13 +10,17 @@ class DataPrepare:
         self.data = pd.DataFrame()
         self.offer2index = dict()
         self.client2index = dict()
+        self.gtype = gtype
+        self.clients = []
+        self.partners = []
+        self.offers = []
         
     
     def load_data(self, dirpath):
         self.data = pd.read_csv(dirpath, low_memory=False)
         
         
-    def index_col(self, despath):
+    def index_col_tripartite(self, despath):
         if self.data['cid'].isnull().any():
             t = self.data['cid']
             t = t.fillna('other')
@@ -46,7 +48,7 @@ class DataPrepare:
                 f.write(str(cc) + '\n')
         
         
-    def pair_col(self, despath):
+    def pair_col_tripartite(self, despath):
         f1 = open(despath + '/partner_client.txt', 'w')
         f2 = open(despath + '/partner_offer.txt', 'w')
         indexs = self.data.index
@@ -56,12 +58,42 @@ class DataPrepare:
         
         f1.close()
         f2.close()
+        
+    
+    def index_col_bipartite(self, despath):
+        self.clients = self.data['iplong']
+        with open(despath + 'id_client.txt', 'w') as f:
+            for index, cc in enumerate(self.clients):
+                f.write(str(index) + '\t' + str(cc) + '\n')
+                self.client2index[cc] = index
+        
+        self.partners = self.data['partnerid'].unique().tolist()                
+    
+    def pair_col_bipartite(self, despath):
+        indexs = self.data.index
+        with open(despath + '/partner_client.txt', 'w') as f:
+            for ind in tqdm(range(len(indexs)), desc='Pair_col_bipartite_writing'):
+                f.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'iplong']]) + '\n')
+                        
+    
+    def tripartite(self, despath):
+        self.index_col_tripartite(despath)
+        self.pair_col_tripartite(despath)
+         
+        
+    def bipartite(self, despath):
+        self.index_col_bipartite(despath)
+        self.pair_col_bipartite(despath)
        
     
     def generate_metapath(self, despath, numwalks, walklength):
         self.MPG = MetaPathGenerator()
-        self.MPG.read_data(despath)
-        self.MPG.generate_random_apcpa(despath+ '/random_walk.txt', numwalks, walklength)
+        if self.gtype == 1:
+            self.MPG.read_data_tripartite(despath)
+            self.MPG.generate_random_apcpa(despath+ '/random_walk.txt', numwalks, walklength)
+        else:
+            self.MPG.read_data_bipartite(despath)
+            self.MPG.generate_random_pcp(despath + '/random_walk.txt', numwalks, walklength)
         
     # Generate node_type file
     def generate_node_type(self, despath):
@@ -69,44 +101,52 @@ class DataPrepare:
         for cc in self.partners:
             node_type[cc] = 'p'
         for cc in self.clients:
-            node_type[cc] = 'c'
+            node_type[str(cc)] = 'c'
         for cc in self.offers:
             node_type[cc] = 'o'
         # print len(node_type.keys())
-            
+        
+        result_type = {}
         des_f = open(despath + '/node_type_mapings.txt', 'w')
         with open(despath + '/random_walk.txt', 'r') as f:
             for line in f:
                 splits = line.strip().split('\t')
                 for split in splits:
-                    try:
-                        des_f.write(split + '\t' + node_type[split] + '\n')
-                    except KeyError:
-                        print split
+                    if split not in result_type:
+                        result_type[split] = node_type[split]
         
+        for key in result_type:
+            des_f.write(key + '\t' + result_type[key] + '\n')
         des_f.close()
-        
+
+# graph type 1 for tripatite
+gtype = sys.argv[1]
 # Path of original dataset
-dirpath = sys.argv[1]
+dirpath = sys.argv[2]
 # Path of destination floder
-despath = sys.argv[2]
+despath = sys.argv[3]
 # Number of walks and length of walk a nodes walks
-numwalks = int(sys.argv[3])
-walklength = int(sys.argv[4])
+numwalks = int(sys.argv[4])
+walklength = int(sys.argv[5])
 
 def main():
     dp = DataPrepare()
     print 'loading data...'
     dp.load_data(dirpath)
-    print 'creating index files...'
-    dp.index_col(despath)
-    print 'creating pair-wise files...'
-    dp.pair_col(despath)
-    print 'generating metapaths...'
-    dp.generate_metapath(despath, numwalks, walklength)
-    print 'generating node type file...'
-    dp.generate_node_type(despath)
-    
+    if gtype == 1:
+        print 'creating files...'
+        dp.tripartite(despath)
+        print 'generating metapathes...'
+        dp.generate_metapath(despath, numwalks, walklength)
+        print 'generating node type file...'
+        dp.generate_node_type(despath)
+    else:
+        print 'creating files...'
+        dp.bipartite(despath)
+        print 'generating metapathes...'
+        dp.generate_metapath(despath, numwalks, walklength)
+        print 'generating node type file...'
+        dp.generate_node_type(despath)
 
 if __name__ == '__main__':
     main()
