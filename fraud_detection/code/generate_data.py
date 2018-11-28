@@ -61,7 +61,12 @@ class DataPrepare:
         
     
     def index_col_bipartite(self, despath):
-        self.clients = self.data['iplong']
+        if self.data['agent'].isnull().any():
+            t = self.data['agent']
+            t = t.fillna('other')
+            self.data['agent'] = t
+        self.data['client'] = self.data['agent'] + self.data['iplong'].astyepe(str)
+        self.clients = self.data['client'].unique().tolist()
         with open(despath + 'id_client.txt', 'w') as f:
             for index, cc in enumerate(self.clients):
                 f.write(str(index) + '\t' + str(cc) + '\n')
@@ -73,7 +78,7 @@ class DataPrepare:
         indexs = self.data.index
         with open(despath + '/partner_client.txt', 'w') as f:
             for ind in tqdm(range(len(indexs)), desc='Pair_col_bipartite_writing'):
-                f.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'iplong']]) + '\n')
+                f.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\n')
                         
     
     def tripartite(self, despath):
