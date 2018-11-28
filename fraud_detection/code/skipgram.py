@@ -8,7 +8,7 @@ import json
 from utils import get_optimizer
 
 class Skipgram:
-    def __init__(self, VOCAB_SIZE, EMBED_SIZE, NUM_SAMPLED, LEARNING_RATE, BATCH_SIZE, OPT_ALGO, DATASET, LOG_DIRECTORY):
+    def __init__(self, VOCAB_SIZE, EMBED_SIZE, NUM_SAMPLED, LEARNING_RATE, BATCH_SIZE, OPT_ALGO, DATASET, LOG_DIRECTORY, MAX_KEEP_MODEL):
         self.vocab_size = VOCAB_SIZE
         self.embed_size = EMBED_SIZE
         self.num_samples = NUM_SAMPLED
@@ -18,6 +18,7 @@ class Skipgram:
         self.dataset = DATASET
         self.datasize = self.dataset.node_context_pairs[0].shape[0]
         self.log_directory = LOG_DIRECTORY
+        self.max_keep_model = MAX_KEEP_MODEL
         self._build_model()
         
     def _build_model(self):
@@ -82,7 +83,7 @@ class Skipgram:
         care_type = True if care_type==1 else False
         
         # Add ops to save and restore all the variables.
-        # saver = tf.train.Saver(max_to_keep=max_keep_model)
+        saver = tf.train.Saver(max_to_keep=self.max_keep_model)
         writer = tf.summary.FileWriter(self.log_directory, self.graph)
         
         
@@ -117,9 +118,12 @@ class Skipgram:
                 except tf.errors.OutOfRangeError:
                     print('Epoch {:3d}, loss={:.5f}'.format(epoch, total_loss/self.datasize))
                     break
-
-            writer.close()
-    
+            
+            model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
+            save_path = saver.save(sess, model_path)
+            print("Model saved in file: %s" % save_path)
+        
+        writer.close()
         print("Save final embeddings as numpy array")
         np_node_embeddings = tf.get_default_graph().get_tensor_by_name("embedding_matrix/embed_matrix:0")
         np_node_embeddings = self.sess.run(np_node_embeddings)
