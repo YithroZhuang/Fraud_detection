@@ -15,6 +15,8 @@ class MetaPathGenerator:
         self.partner_offer = dict()
         self.client_partner = dict()
         self.offer_partner = dict()
+        self.client_offer = dict()
+        self.offer_client = dict()
         # self.cid_cocidlist = dict()
         # self.agent_cidlist = dict()
         # self.cid_agentlist = dict()
@@ -60,8 +62,7 @@ class MetaPathGenerator:
                     self.partner_offer[p].append(o)
                     if o not in self.offer_partner:
                         self.offer_partner[o] = []
-                    self.offer_partner[o].append(p)
-                    
+                    self.offer_partner[o].append(p) 
     
     # Load data for bipartite graoh
     def read_data_bipartite(self, dirpath):
@@ -86,6 +87,51 @@ class MetaPathGenerator:
                         self.client_partner[c] = []
                     self.client_partner[c].append(p)
 
+    
+    
+    # load data for hierarchy bipartite
+    def read_data_hierarchy(self, dirpath):
+        
+        # Load users' information
+        with open(dirpath + '/id_client.txt', 'r') as uf:
+            for line in uf:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    self.id_client[toks[0]] = toks[1].replace(" ", "")
+        
+        # Load offers' information
+        with open(dirpath + 'id_offer.txt', 'r') as of:
+            for line in of:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    self.id_offer[toks[0]] = toks[1].replace(" ", "")
+                    
+        # Load application_user information
+        with open(dirpath + 'partner_client.txt', 'r') as tuf:
+            for line in tuf:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    p, c = toks[0], toks[1]
+                    if p not in self.partner_client:
+                        self.partner_client[p] = []
+                    self.partner_client[p].append(c)
+                    if c not in self.client_partner:
+                        self.clinet_partner[c] = []
+                    self.client_partner[c].append(p)
+        
+        # Load client_advertisment information
+        with open(dirpath + 'client_offer.txt', 'r') as cof:
+            for line in cof:
+                toks = line.strip('\n').split('\t')
+                if len(toks) == 2:
+                    c, o = toks[0], toks[1]
+                    if c not in self.client_offer:
+                        self.client_offer[c] = []
+                    self.client_offer[c].append(o)
+                    if o not in self.offer_client:
+                        self.offer_client[o] = []
+                    self.offer_client[o].append[c]
+            
     # Generate random walk path apcpa
     def generate_random_apcpa(self, outfilename, numwalks, walklenghth):
 
@@ -137,7 +183,26 @@ class MetaPathGenerator:
                         outline += '\t' + p1
                     outfile.write(outline + '\n')
                     
-
+    # Generate random walk path coc
+    def generate_random_coc(self, outfilename, numwalks, walklength):
+        with open(outfilename, 'w') as outfile:
+            for c in self.client_offer:
+                c0 = c
+                for i in xrange(0, numwalks):
+                    outline = self.id_client[c0]
+                    for j in xrange(0, walklength):
+                        o = self.client_offer[c0]
+                        numo = len(o)
+                        oid = random.randrange(numo)
+                        o0 = o[oid]
+                        outline += '\t' + self.id_offer[o0]
+                        c1 = self.offer_client[o0]
+                        numc = len(c1)
+                        cid = random.randrange(numc)
+                        c1 = c1[cid]
+                        outline += '\t' + self.id_client[c1]
+                    outfile.write(outline + '\n')
+                    
 # =============================================================================
 # if __name__ == '__main__':
 #     MPG = MetaPathGenerator()

@@ -46,8 +46,8 @@ class DataPrepare:
         with open(despath + '/partner.txt', 'w') as f:
             for cc in self.partners:
                 f.write(str(cc) + '\n')
-        
-        
+    
+    
     def pair_col_tripartite(self, despath):
         f1 = open(despath + '/partner_client.txt', 'w')
         f2 = open(despath + '/partner_offer.txt', 'w')
@@ -59,6 +59,18 @@ class DataPrepare:
         f1.close()
         f2.close()
         
+    
+    def hierarchy_col_bipartite(self, despath):
+        f1 = open(despath + '/client_offer.txt', 'w')
+        f2 = open(despath + '/partner_client.txt', 'w')
+        indexs = self.data.index
+        for ind in tqdm(range(len(indexs)), desc='pair_column_writing'):
+            f1.write(str(self.offer2index[self.data.loc[indexs[ind], 'client']]) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\n')
+            f2.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.offer2index[self.data.loc[indexs[ind], 'cid']]) + '\n')
+        
+        f1.close()
+        f2.close()
+
     
     def index_col_bipartite(self, despath):
         if self.data['agent'].isnull().any():
@@ -74,12 +86,13 @@ class DataPrepare:
         
         self.partners = self.data['partnerid'].unique().tolist()                
     
+    
     def pair_col_bipartite(self, despath):
         indexs = self.data.index
         with open(despath + '/partner_client.txt', 'w') as f:
             for ind in tqdm(range(len(indexs)), desc='Pair_col_bipartite_writing'):
                 f.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\n')
-                        
+                
     
     def tripartite(self, despath):
         self.index_col_tripartite(despath)
@@ -91,15 +104,32 @@ class DataPrepare:
         self.pair_col_bipartite(despath)
        
     
+    def hierarchy_bipartite(self, despath):
+        self.index_col_tripartite(despath)
+        self.hierarchy_col_bipartite(despath)
+    
     def generate_metapath(self, despath, numwalks, walklength):
         self.MPG = MetaPathGenerator()
         if self.gtype == 1:
             self.MPG.read_data_tripartite(despath)
             self.MPG.generate_random_apcpa(despath+ '/random_walk.txt', numwalks, walklength)
-        else:
+        elif self.gtype == 2:
             self.MPG.read_data_bipartite(despath)
             self.MPG.generate_random_pcp(despath + '/random_walk.txt', numwalks, walklength)
-        
+        elif self.gtype == 3:
+            self.MPG.read_data_hierarchy(despath)
+            self.MPG.generate_random_pcp(despath + '/random_walk_application.txt', numwalks, walklength)
+            self.MPG.generate_random_coc(despath + '/random_walk_client.txt', numwalks, walklength)
+    
+    
+    def read_node_type(self, srcfile, node_type):
+        with open(srcfile, 'w') as f:
+            for line in f:
+                splits = line.strip('\n').split('\t')
+                for split in splits:
+                    if split not in self.result_type:
+                        self.result_type[split] = node_type[split]
+    
     # Generate node_type file
     def generate_node_type(self, despath):
         node_type = {}
@@ -111,15 +141,14 @@ class DataPrepare:
             node_type[cc] = 'o'
         # print len(node_type.keys())
         
-        result_type = {}
+        self.result_type = {}
         des_f = open(despath + '/node_type_mapings.txt', 'w')
-        with open(despath + '/random_walk.txt', 'r') as f:
-            for line in f:
-                splits = line.strip().split('\t')
-                for split in splits:
-                    if split not in result_type:
-                        result_type[split] = node_type[split]
-        
+        if self.gtype in [1, 2]:
+            self.read_node_type(despath + 'random_walk.txt', node_type)
+        else:
+            self.read_node_type(despath + 'random_walk_application.txt', node_type)
+            self.read_node_type(despath + 'random_walk_client.txt', node_type)
+            
         for key in result_type:
             des_f.write(key + '\t' + result_type[key] + '\n')
         des_f.close()
@@ -145,13 +174,19 @@ def main():
         dp.generate_metapath(despath, numwalks, walklength)
         print 'generating node type file...'
         dp.generate_node_type(despath)
-    else:
+    elif gtype == 2:
         print 'creating files...'
         dp.bipartite(despath)
         print 'generating metapathes...'
         dp.generate_metapath(despath, numwalks, walklength)
         print 'generating node type file...'
         dp.generate_node_type(despath)
+    elif gtype == 3:
+        print 'creating files...'
+        dp.hierarchy_bipartite(despath)
+        print 'generating metapathes...'
+        dp.generate_metapath(despath, numwalks, walklength)
+        
 
 if __name__ == '__main__':
     main()
