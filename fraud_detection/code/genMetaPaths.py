@@ -100,14 +100,14 @@ class MetaPathGenerator:
                     self.id_client[toks[0]] = toks[1].replace(" ", "")
         
         # Load offers' information
-        with open(dirpath + 'id_offer.txt', 'r') as of:
+        with open(dirpath + '/id_offer.txt', 'r') as of:
             for line in of:
                 toks = line.strip('\n').split('\t')
                 if len(toks) == 2:
                     self.id_offer[toks[0]] = toks[1].replace(" ", "")
                     
         # Load application_user information
-        with open(dirpath + 'partner_client.txt', 'r') as tuf:
+        with open(dirpath + '/partner_client.txt', 'r') as tuf:
             for line in tuf:
                 toks = line.strip('\n').split('\t')
                 if len(toks) == 2:
@@ -120,7 +120,7 @@ class MetaPathGenerator:
                     self.client_partner[c].append(p)
         
         # Load client_advertisment information
-        with open(dirpath + 'client_offer.txt', 'r') as cof:
+        with open(dirpath + '/client_offer.txt', 'r') as cof:
             for line in cof:
                 toks = line.strip('\n').split('\t')
                 if len(toks) == 2:

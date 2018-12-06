@@ -153,8 +153,9 @@ class DataPrepare:
             des_f.write(key + '\t' + result_type[key] + '\n')
         des_f.close()
 
+
 # graph type 1 for tripatite
-gtype = sys.argv[1]
+gtype = int(sys.argv[1])
 # Path of original dataset
 dirpath = sys.argv[2]
 # Path of destination floder
@@ -186,7 +187,9 @@ def main():
         dp.hierarchy_bipartite(despath)
         print 'generating metapathes...'
         dp.generate_metapath(despath, numwalks, walklength)
-        
+        print 'generating node type file...'
+	dp.generate_node_type(despath)
+
 
 if __name__ == '__main__':
     main()
