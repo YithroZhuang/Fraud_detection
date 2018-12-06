@@ -81,7 +81,9 @@ class Skipgram:
         *epoch index starts from 1! not 0.
         '''
         care_type = True if care_type==1 else False
-        
+        min_epoch = 10
+        early_stop_epoch = 5
+        historical_score = []
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver(max_to_keep=self.max_keep_model)
         writer = tf.summary.FileWriter(self.log_directory, self.graph)
@@ -122,6 +124,13 @@ class Skipgram:
             model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
             save_path = saver.save(sess, model_path)
             print("Model saved in file: %s" % save_path)
+            
+            if epoch > min_epoch and epoch > early_stop_epoch:
+                if np.argmin(historical_score) <= epoch - early_stop_epoch and historical_score[-1*early_stop_epoch] - \
+                                                       historical_score[-1] < 1e-5:
+                    print('early_stop \n best iteration:\n[%d]\t train_loss: %.5f'%(np.argmin(historical_score)+1, \
+                                                                                     np.min(historical_score)))
+                    break
         
         writer.close()
         print("Save final embeddings as numpy array")
@@ -130,4 +139,4 @@ class Skipgram:
         np.savez(os.path.join(self.log_directory,"node_embeddings.npz"),np_node_embeddings)
     
         with open(os.path.join(self.log_directory,"index2nodeid.json"), 'w') as f:  
-            json.dump(self.dataset.index2nodeid, f, sort_keys=True, indent=4)  
+            json.dump(self.dataset.index2nodeid, f, sort_keys=True, indent=4)
