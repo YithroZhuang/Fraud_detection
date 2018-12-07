@@ -65,8 +65,8 @@ class DataPrepare:
         f2 = open(despath + '/partner_client.txt', 'w')
         indexs = self.data.index
         for ind in tqdm(range(len(indexs)), desc='pair_column_writing'):
-            f1.write(str(self.offer2index[self.data.loc[indexs[ind], 'client']]) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\n')
-            f2.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.offer2index[self.data.loc[indexs[ind], 'cid']]) + '\n')
+            f1.write(str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\t' + str(self.offer2index[self.data.loc[indexs[ind], 'cid']]) + '\n')
+            f2.write(str(self.data.loc[indexs[ind], 'partnerid']) + '\t' + str(self.client2index[self.data.loc[indexs[ind], 'client']]) + '\n')
         
         f1.close()
         f2.close()
@@ -123,7 +123,7 @@ class DataPrepare:
     
     
     def read_node_type(self, srcfile, node_type):
-        with open(srcfile, 'w') as f:
+        with open(srcfile, 'r') as f:
             for line in f:
                 splits = line.strip('\n').split('\t')
                 for split in splits:
@@ -144,13 +144,13 @@ class DataPrepare:
         self.result_type = {}
         des_f = open(despath + '/node_type_mapings.txt', 'w')
         if self.gtype in [1, 2]:
-            self.read_node_type(despath + 'random_walk.txt', node_type)
+            self.read_node_type(despath + '/random_walk.txt', node_type)
         else:
-            self.read_node_type(despath + 'random_walk_application.txt', node_type)
-            self.read_node_type(despath + 'random_walk_client.txt', node_type)
+            self.read_node_type(despath + '/random_walk_application.txt', node_type)
+            self.read_node_type(despath + '/random_walk_client.txt', node_type)
             
-        for key in result_type:
-            des_f.write(key + '\t' + result_type[key] + '\n')
+        for key in self.result_type:
+            des_f.write(key + '\t' + self.result_type[key] + '\n')
         des_f.close()
 
 

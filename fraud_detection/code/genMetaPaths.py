@@ -116,7 +116,7 @@ class MetaPathGenerator:
                         self.partner_client[p] = []
                     self.partner_client[p].append(c)
                     if c not in self.client_partner:
-                        self.clinet_partner[c] = []
+                        self.client_partner[c] = []
                     self.client_partner[c].append(p)
         
         # Load client_advertisment information
@@ -130,7 +130,7 @@ class MetaPathGenerator:
                     self.client_offer[c].append(o)
                     if o not in self.offer_client:
                         self.offer_client[o] = []
-                    self.offer_client[o].append[c]
+                    self.offer_client[o].append(c)
             
     # Generate random walk path apcpa
     def generate_random_apcpa(self, outfilename, numwalks, walklenghth):
