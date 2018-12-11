@@ -122,7 +122,7 @@ class Skipgram:
                     break
             
             model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
-            save_path = saver.save(sess, model_path)
+            save_path = saver.save(self.sess, model_path)
             print("Model saved in file: %s" % save_path)
             
             if epoch > min_epoch and epoch > early_stop_epoch:

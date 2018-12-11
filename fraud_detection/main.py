@@ -49,7 +49,8 @@ if __name__ == '__main__':
                 'BATCH_SIZE': args.batch,
                 'OPT_ALGO': args.opt_algo,
                 'DATASET' :dataset,
-                'LOG_DIRECTORY': args.log
+                'LOG_DIRECTORY': args.log,
+	 	'MAX_KEEP_MODEL': args.max_keep_model
             }
     skipgram = Skipgram(**skip_params)
     skipgram._train(args.epochs, args.care_type)

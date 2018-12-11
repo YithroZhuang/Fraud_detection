@@ -119,7 +119,7 @@ class DataPrepare:
         elif self.gtype == 3:
             self.MPG.read_data_hierarchy(despath)
             self.MPG.generate_random_pcp(despath + '/random_walk_application.txt', numwalks, walklength)
-            self.MPG.generate_random_coc(despath + '/random_walk_client.txt', numwalks, walklength)
+            self.MPG.generate_random_coc(despath + '/random_walk_client.txt', 5, 2)
     
     
     def read_node_type(self, srcfile, node_type):

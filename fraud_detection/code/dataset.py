@@ -44,7 +44,10 @@ class Dataset(object):
                     print("something is wrong!!!")
                     print(pair)
                     continue
-                index2type[nodeid2index[pair[0]]]=pair[1]
+                try:
+		    index2type[nodeid2index[pair[0]]]=pair[1]
+		except KeyError:
+		    pass
 
         type2indices = {}
         all_types = set(index2type.values())
