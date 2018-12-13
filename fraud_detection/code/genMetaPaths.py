@@ -17,6 +17,7 @@ class MetaPathGenerator:
         self.offer_partner = dict()
         self.client_offer = dict()
         self.offer_client = dict()
+	self.target_client = set()
         # self.cid_cocidlist = dict()
         # self.agent_cidlist = dict()
         # self.cid_agentlist = dict()
@@ -175,6 +176,7 @@ class MetaPathGenerator:
                         numc = len(c)
                         cid = random.randrange(numc)
                         c0 = c[cid]
+			self.target_client.add(c0)
                         outline += '\t' + self.id_client[c0]
                         p1 = self.client_partner[c0]
                         nump = len(p1)
@@ -186,7 +188,8 @@ class MetaPathGenerator:
     # Generate random walk path coc
     def generate_random_coc(self, outfilename, numwalks, walklength):
         with open(outfilename, 'w') as outfile:
-            for c in self.client_offer:
+	    self.target_client = list(self.target_client)
+            for c in self.target_client:
                 c0 = c
                 for i in xrange(0, numwalks):
                     outline = self.id_client[c0]

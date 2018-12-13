@@ -124,7 +124,7 @@ class Skipgram:
             model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
             save_path = saver.save(self.sess, model_path)
             print("Model saved in file: %s" % save_path)
-            
+            historical_score.append(total_loss/self.datasize)
             if epoch > min_epoch and epoch > early_stop_epoch:
                 if np.argmin(historical_score) <= epoch - early_stop_epoch and historical_score[-1*early_stop_epoch] - \
                                                        historical_score[-1] < 1e-5:
@@ -136,6 +136,8 @@ class Skipgram:
         print("Save final embeddings as numpy array")
         np_node_embeddings = tf.get_default_graph().get_tensor_by_name("embedding_matrix/embed_matrix:0")
         np_node_embeddings = self.sess.run(np_node_embeddings)
+	amin, amax = np_node_embeddings.min(), np_node_embeddings.max()
+	np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
         np.savez(os.path.join(self.log_directory,"node_embeddings.npz"),np_node_embeddings)
     
         with open(os.path.join(self.log_directory,"index2nodeid.json"), 'w') as f:  
