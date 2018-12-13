@@ -136,6 +136,9 @@ class Skipgram:
         print("Save final embeddings as numpy array")
         np_node_embeddings = tf.get_default_graph().get_tensor_by_name("embedding_matrix/embed_matrix:0")
         np_node_embeddings = self.sess.run(np_node_embeddings)
+        np_node_embeddings = self.sess.run(np_node_embeddings)
+        amin , amax = np_node_embeddings.min(), np_node_embeddings.max()
+        np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
         np.savez(os.path.join(self.log_directory,"node_embeddings.npz"),np_node_embeddings)
     
         with open(os.path.join(self.log_directory,"index2nodeid.json"), 'w') as f:  
