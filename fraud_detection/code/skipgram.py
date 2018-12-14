@@ -24,54 +24,60 @@ class Skipgram:
     def _build_model(self):
         
         self.graph = tf.Graph()
-        with tf.name_scope('data'):
-            self.center_node = tf.placeholder(tf.int32, shape=[None], name='center_node')
-            self.context_node = tf.placeholder(tf.int32, shape=[None, 1], name='context_node')
-            self.negative_samples = (tf.placeholder(tf.int32, shape=[self.num_samples], name='negative_samples'),
-                                tf.placeholder(tf.float32, shape=[None, 1], name='true_expected_count'),
-                                tf.placeholder(tf.float32, shape=[self.num_samples], name='sampled_expected_count'))
-        
-        with tf.name_scope('embedding_matrix'):
-            self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], 0.0, 1.0), 
-                                    name='embed_matrix')
-            tf.summary.histogram('embedding_matrix', self.embed_matrix)
-        
-            # define the inference
-        with tf.name_scope('loss'):
-            embed = tf.nn.embedding_lookup(self.embed_matrix, self.center_node, name='embed')
-        
-            #construct variables for NCE loss
-            nce_weight = tf.Variable(tf.truncated_normal([self.vocab_size, self.embed_size],
-                                                            stddev=1.0 / (self.embed_size ** 0.5)), 
-                                                            name='nce_weight')
-            nce_bias = tf.Variable(tf.zeros([self.vocab_size]), name='nce_bias')
-        
-                # define loss function to be NCE loss function
-            self.loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weight, 
-                                                    biases=nce_bias, 
-                                                    labels=self.context_node, 
-                                                    inputs=embed,
-                                                    sampled_values = self.negative_samples, 
-                                                    num_sampled=self.num_samples, 
-                                                    num_classes=self.vocab_size), name='loss')
-        
-            tf.summary.scalar("loss_summary", self.loss)
+        with self.graph.as_default():
+            with tf.name_scope('data'):
+                self.center_node = tf.placeholder(tf.int32, shape=[None], name='center_node')
+                self.context_node = tf.placeholder(tf.int32, shape=[None, 1], name='context_node')
+                self.negative_samples = (tf.placeholder(tf.int32, shape=[self.num_samples], name='negative_samples'),
+                                    tf.placeholder(tf.float32, shape=[None, 1], name='true_expected_count'),
+                                    tf.placeholder(tf.float32, shape=[self.num_samples], name='sampled_expected_count'))
             
-        global_step = tf.Variable(0.0)
-        with tf.name_scope('learning_rate'):
-            self.learning_rate = tf.train.exponential_decay(self.learning_rate, global_step, float(self.datasize)/self.batch_size, 0.98)
-            tf.summary.scalar('Learning_rate', self.learning_rate)
+            with tf.name_scope('embedding_matrix'):
+                self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], 0.0, 1.0), 
+                                        name='embed_matrix')
+                tf.summary.histogram('embedding_matrix', self.embed_matrix)
             
-        #define optimizer
-        with tf.name_scope('optimizer'):
-            self.optimizer = get_optimizer(self.opt_algo, self.learning_rate, self.loss, global_step)
-        self.merge = tf.summary.merge_all()
-        self.config = tf.ConfigProto()
-        self.config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=self.config)
+                # define the inference
+            with tf.name_scope('loss'):
+                embed = tf.nn.embedding_lookup(self.embed_matrix, self.center_node, name='embed')
             
+                #construct variables for NCE loss
+                nce_weight = tf.Variable(tf.truncated_normal([self.vocab_size, self.embed_size],
+                                                                stddev=1.0 / (self.embed_size ** 0.5)), 
+                                                                name='nce_weight')
+                nce_bias = tf.Variable(tf.zeros([self.vocab_size]), name='nce_bias')
             
-        tf.global_variables_initializer().run(session=self.sess)
+                    # define loss function to be NCE loss function
+                self.loss = tf.reduce_mean(tf.nn.nce_loss(weights=nce_weight, 
+                                                        biases=nce_bias, 
+                                                        labels=self.context_node, 
+                                                        inputs=embed,
+                                                        sampled_values = self.negative_samples, 
+                                                        num_sampled=self.num_samples, 
+                                                        num_classes=self.vocab_size), name='loss')
+            
+                tf.summary.scalar("loss_summary", self.loss)
+                
+            global_step = tf.Variable(0.0)
+            with tf.name_scope('learning_rate'):
+                self.learning_rate = tf.train.exponential_decay(self.learning_rate, global_step, float(self.datasize)/self.batch_size, 0.98)
+                tf.summary.scalar('Learning_rate', self.learning_rate)
+                
+            #define optimizer
+            with tf.name_scope('optimizer'):
+                self.optimizer = get_optimizer(self.opt_algo, self.learning_rate, self.loss, global_step)
+            self.merge = tf.summary.merge_all()
+            self.config = tf.ConfigProto()
+            self.config.gpu_options.allow_growth = True
+            self.sess = tf.Session(config=self.config, graph=self.graph)
+            
+            self.data = tf.data.Dataset.from_tensor_slices((self.center_node, self.context_node))
+                
+            self.data = self.data.shuffle(10000).batch(self.batch_size)
+        
+            self.iterator = self.data.make_initializable_iterator()
+            self.next_element = self.iterator.get_next()
+            tf.global_variables_initializer().run(session=self.sess)
 
 
     def _train(self, epochs, care_type):
@@ -89,22 +95,16 @@ class Skipgram:
         writer = tf.summary.FileWriter(self.log_directory, self.graph)
         
         
-        data = tf.data.Dataset.from_tensor_slices((self.center_node, self.context_node))
-        data = data.shuffle(10000).batch(self.batch_size)
-        
-        iterator = data.make_initializable_iterator()
-        next_element = iterator.get_next()
-        
         for epoch in range(1, epochs+1):
             fetch = [self.optimizer, self.loss, self.merge]
             total_loss = 0.0
             iteration = 0
-            self.sess.run(iterator.initializer, feed_dict={self.center_node:self.dataset.node_context_pairs[0],
+            self.sess.run(self.iterator.initializer, feed_dict={self.center_node:self.dataset.node_context_pairs[0],
                                                            self.context_node:self.dataset.node_context_pairs[1].reshape(-1,1)})
             
             while True:
                 try:
-                    center_node_batch, context_node_batch = self.sess.run(next_element)
+                    center_node_batch, context_node_batch = self.sess.run(self.next_element)
                     negative_samples  = self.dataset.get_negative_samples(pos_index=context_node_batch,num_negatives=self.num_samples,care_type=care_type)
                     context_node_batch = context_node_batch.reshape((-1,1))
                     _, loss_batch,summary_str = self.sess.run(fetch, feed_dict={self.center_node:center_node_batch,
@@ -134,8 +134,7 @@ class Skipgram:
         
         writer.close()
         print("Save final embeddings as numpy array")
-        np_node_embeddings = tf.get_default_graph().get_tensor_by_name("embedding_matrix/embed_matrix:0")
-        np_node_embeddings = self.sess.run(np_node_embeddings)
+        np_node_embeddings = self.sess.run(self.embed_matrix)
         np_node_embeddings = self.sess.run(np_node_embeddings)
         amin , amax = np_node_embeddings.min(), np_node_embeddings.max()
         np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
