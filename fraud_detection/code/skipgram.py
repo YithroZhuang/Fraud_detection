@@ -19,9 +19,9 @@ class Skipgram:
         self.datasize = self.dataset.node_context_pairs[0].shape[0]
         self.log_directory = LOG_DIRECTORY
         self.max_keep_model = MAX_KEEP_MODEL
-        self._build_model()
+        self._build_model(self.dataset.result)
         
-    def _build_model(self):
+    def _build_model(self, embed_m=None):
         
         self.graph = tf.Graph()
         with tf.name_scope('data'):
@@ -32,8 +32,11 @@ class Skipgram:
                                 tf.placeholder(tf.float32, shape=[self.num_samples], name='sampled_expected_count'))
         
         with tf.name_scope('embedding_matrix'):
-            self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], 0.0, 1.0), 
+	    if embed_m is None:
+            	self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], -1.0, 1.0), 
                                     name='embed_matrix')
+	    else:
+		self.embed_matrix = tf.Variable(embed_m,dtype=tf.float32,name='embed_matrix')
             tf.summary.histogram('embedding_matrix', self.embed_matrix)
         
             # define the inference
@@ -134,10 +137,10 @@ class Skipgram:
         
         writer.close()
         print("Save final embeddings as numpy array")
-        np_node_embeddings = tf.get_default_graph().get_tensor_by_name("embedding_matrix/embed_matrix:0")
+        np_node_embeddings = self.embed_matrix
         np_node_embeddings = self.sess.run(np_node_embeddings)
-	amin, amax = np_node_embeddings.min(), np_node_embeddings.max()
-	np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
+        amin , amax = np_node_embeddings.min(), np_node_embeddings.max()
+        np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
         np.savez(os.path.join(self.log_directory,"node_embeddings.npz"),np_node_embeddings)
     
         with open(os.path.join(self.log_directory,"index2nodeid.json"), 'w') as f:  

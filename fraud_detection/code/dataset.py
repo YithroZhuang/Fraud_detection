@@ -17,10 +17,11 @@ includes the sampler for word2vec negative sampling
 
 import numpy as np
 import random
+import json
 # import scipy
 
 class Dataset(object):
-    def __init__(self, random_walk_txt, node_type_mapping_txt, window_size):
+    def __init__(self, random_walk_txt, node_type_mapping_txt, window_size, json_file=None, npz_file=None):
         index2token, token2index, word_and_counts, index2frequency, node_context_pairs = self.parse_random_walk_txt(random_walk_txt,window_size)
         self.window_size = window_size
         self.nodeid2index = token2index
@@ -31,7 +32,11 @@ class Dataset(object):
         self.type2indices = type2indices
         self.node_context_pairs = np.array(node_context_pairs).T
         self.prepare_sampling_dist(index2frequency, index2type, type2indices)
+        self.json_file = json_file
+        self.npz_file = npz_file
+        result = self.construct_matrix()
         self.shffule()
+        self.result = result
 
     def parse_node_type_mapping_txt(self, node_type_mapping_txt, nodeid2index):
         #this method does not modify any class variables
@@ -148,12 +153,38 @@ class Dataset(object):
 
         self.sampling_prob = sampling_prob
         self.type2probs = type2probs
+        
+    
+    def construct_matrix(self):
+        result = []
+        if self.json_file is None and self.npz_file is None:
+            return None
+        i2n = json.load(open(self.json_file))
+        i2n = {int(k) : v for k, v in i2n.items()}
+        n2i = {v : int(k) for k, v in i2n.items()}
+        ne = np.load(self.npz_file)['arr_0']
+        
+        for index in range(len(self.index2nodeid)):
+            try:
+                result.append(ne[n2i[self.index2nodeid[index]]])
+            except KeyError:
+                result.append(np.random.uniform(-1,1,[128]))   
+        return np.array(result).astype(np.float64)
 
 if __name__ == '__main__':
-    #test code  
-    dataset=Dataset(random_walk_txt="../data/random_walk.txt",node_type_mapping_txt="../data/node_type_mapings.txt",window_size=1)
-    print(dataset.get_batch(2))
-    center, context = dataset.get_one_batch()
-    print(dataset.sampling_prob)
-    print(dataset.get_negative_samples(context, num_negatives=5, care_type=False))
-    print(dataset.get_negative_samples(context, num_negatives=2, care_type=True))
+    path = '/home/yithro/workplace/data/hierarchy/hierarchy'
+    dataset = Dataset(random_walk_txt=path + '/random_walk_application.txt', \
+                      node_type_mapping_txt= path + '/node_type_mapings.txt', \
+                      window_size = 1, \
+                      json_file=path + '/log1/index2nodeid.json', \
+                      npz_file=path + '/log1/node_embeddings.npz')
+    print dataset.result.shape
+# =============================================================================
+#     #test code  
+#     dataset=Dataset(random_walk_txt="../data/random_walk.txt",node_type_mapping_txt="../data/node_type_mapings.txt",window_size=1)
+#     print(dataset.get_batch(2))
+#     center, context = dataset.get_one_batch()
+#     print(dataset.sampling_prob)
+#     print(dataset.get_negative_samples(context, num_negatives=5, care_type=False))
+#     print(dataset.get_negative_samples(context, num_negatives=2, care_type=True))
+# =============================================================================
