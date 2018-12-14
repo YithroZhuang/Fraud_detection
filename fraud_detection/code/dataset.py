@@ -158,7 +158,7 @@ class Dataset(object):
     def construct_matrix(self):
         result = []
         if self.json_file is None and self.npz_file is None:
-            return np.array(result)
+            return None
         i2n = json.load(open(self.json_file))
         i2n = {int(k) : v for k, v in i2n.items()}
         n2i = {v : int(k) for k, v in i2n.items()}
@@ -169,7 +169,8 @@ class Dataset(object):
                 result.append(ne[n2i[self.index2nodeid[index]]])
             except KeyError:
                 result.append(np.random.uniform(-1,1,[128]))   
-        return np.array(result)
+        return np.array(result).astype(np.float64)
+
 
 if __name__ == '__main__':
     path = '/home/yithro/workplace/data/hierarchy/hierarchy'

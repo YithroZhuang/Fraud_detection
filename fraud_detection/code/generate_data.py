@@ -188,7 +188,7 @@ def main():
         print 'generating metapathes...'
         dp.generate_metapath(despath, numwalks, walklength)
         print 'generating node type file...'
-	dp.generate_node_type(despath)
+        dp.generate_node_type(despath)
 
 
 if __name__ == '__main__':

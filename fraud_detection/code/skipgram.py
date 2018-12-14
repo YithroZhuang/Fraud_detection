@@ -19,9 +19,9 @@ class Skipgram:
         self.datasize = self.dataset.node_context_pairs[0].shape[0]
         self.log_directory = LOG_DIRECTORY
         self.max_keep_model = MAX_KEEP_MODEL
-        self._build_model()
+        self._build_model(self.dataset.result)
         
-    def _build_model(self):
+    def _build_model(self, embed_m=None):
         
         self.graph = tf.Graph()
         with self.graph.as_default():
@@ -33,9 +33,12 @@ class Skipgram:
                                     tf.placeholder(tf.float32, shape=[self.num_samples], name='sampled_expected_count'))
             
             with tf.name_scope('embedding_matrix'):
-                self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], 0.0, 1.0), 
+                if embed_m is None:
+                    	self.embed_matrix = tf.Variable(tf.random_uniform([self.vocab_size, self.embed_size], -1.0, 1.0), 
                                         name='embed_matrix')
-                tf.summary.histogram('embedding_matrix', self.embed_matrix)
+                else:
+                    self.embed_matrix = tf.Variable(embed_m,dtype=tf.float32,name='embed_matrix')
+                    tf.summary.histogram('embedding_matrix', self.embed_matrix)
             
                 # define the inference
             with tf.name_scope('loss'):
@@ -66,15 +69,13 @@ class Skipgram:
             #define optimizer
             with tf.name_scope('optimizer'):
                 self.optimizer = get_optimizer(self.opt_algo, self.learning_rate, self.loss, global_step)
+            
             self.merge = tf.summary.merge_all()
             self.config = tf.ConfigProto()
             self.config.gpu_options.allow_growth = True
             self.sess = tf.Session(config=self.config, graph=self.graph)
-            
             self.data = tf.data.Dataset.from_tensor_slices((self.center_node, self.context_node))
-                
             self.data = self.data.shuffle(10000).batch(self.batch_size)
-        
             self.iterator = self.data.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
             tf.global_variables_initializer().run(session=self.sess)
@@ -124,7 +125,7 @@ class Skipgram:
             model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
             save_path = saver.save(self.sess, model_path)
             print("Model saved in file: %s" % save_path)
-            
+            historical_score.append(total_loss/self.datasize)
             if epoch > min_epoch and epoch > early_stop_epoch:
                 if np.argmin(historical_score) <= epoch - early_stop_epoch and historical_score[-1*early_stop_epoch] - \
                                                        historical_score[-1] < 1e-5:
@@ -135,7 +136,6 @@ class Skipgram:
         writer.close()
         print("Save final embeddings as numpy array")
         np_node_embeddings = self.sess.run(self.embed_matrix)
-        np_node_embeddings = self.sess.run(np_node_embeddings)
         amin , amax = np_node_embeddings.min(), np_node_embeddings.max()
         np_node_embeddings = (np_node_embeddings - amin) / (amax - amin)
         np.savez(os.path.join(self.log_directory,"node_embeddings.npz"),np_node_embeddings)
