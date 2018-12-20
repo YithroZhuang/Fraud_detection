@@ -78,6 +78,8 @@ class Skipgram:
             self.data = self.data.shuffle(10000).batch(self.batch_size)
             self.iterator = self.data.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
+	    self.saver = tf.train.Saver(max_to_keep=self.max_keep_model)
+            self.writer = tf.summary.FileWriter(self.log_directory,self.graph)
             tf.global_variables_initializer().run(session=self.sess)
 
 
@@ -92,8 +94,6 @@ class Skipgram:
         early_stop_epoch = 5
         historical_score = []
         # Add ops to save and restore all the variables.
-        saver = tf.train.Saver(max_to_keep=self.max_keep_model)
-        writer = tf.summary.FileWriter(self.log_directory, self.graph)
         
         
         for epoch in range(1, epochs+1):
@@ -112,7 +112,7 @@ class Skipgram:
                                                                                 self.context_node:context_node_batch,
                                                                                 self.negative_samples:negative_samples
                                                                                 })
-                    writer.add_summary(summary_str,iteration)
+                    self.writer.add_summary(summary_str,iteration)
                     total_loss += loss_batch
     
                     # print(loss_batch)
@@ -123,7 +123,7 @@ class Skipgram:
                     break
             
             model_path = os.path.join(self.log_directory,"model_epoch%d.ckpt"%epoch)
-            save_path = saver.save(self.sess, model_path)
+            save_path = self.saver.save(self.sess, model_path)
             print("Model saved in file: %s" % save_path)
             historical_score.append(total_loss/self.datasize)
             if epoch > min_epoch and epoch > early_stop_epoch:
@@ -133,7 +133,7 @@ class Skipgram:
                                                                                      np.min(historical_score)))
                     break
         
-        writer.close()
+        self.writer.close()
         print("Save final embeddings as numpy array")
         np_node_embeddings = self.sess.run(self.embed_matrix)
         amin , amax = np_node_embeddings.min(), np_node_embeddings.max()

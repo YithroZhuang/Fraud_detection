@@ -137,8 +137,9 @@ class MetaPathGenerator:
                 c0 = c
                 for i in xrange(0, numwalks):
                     outline = self.id_client[c0]
+                    c = c0
                     for j in xrange(0, walklenghth):
-                        p1 = self.client_partner[c0]
+                        p1 = self.client_partner[c]
                         nump1 = len(p1)
                         pid1 = random.randrange(nump1)
                         p1 = p1[pid1]
@@ -156,8 +157,8 @@ class MetaPathGenerator:
                         c1 = self.partner_client[p2]
                         numa = len(c1)
                         cid = random.randrange(numa)
-                        c1 = c1[cid]
-                        outline += '\t' + self.id_client[c1]
+                        c = c1[cid]
+                        outline += '\t' + self.id_client[c]
                     outfile.write(outline + '\n')
                     
     # Generate randon walk path pcp
@@ -167,8 +168,9 @@ class MetaPathGenerator:
                 p0 = p
                 for i in xrange(0, numwalks):
                     outline = p0
+		    p = p0
                     for j in xrange(0, walklength):
-                        c = self.partner_client[p0]
+                        c = self.partner_client[p]
                         numc = len(c)
                         cid = random.randrange(numc)
                         c0 = c[cid]
@@ -177,8 +179,8 @@ class MetaPathGenerator:
                         p1 = self.client_partner[c0]
                         nump = len(p1)
                         pid = random.randrange(nump)
-                        p1 = p1[pid]
-                        outline += '\t' + p1
+                        p = p1[pid]
+                        outline += '\t' + p
                     outfile.write(outline + '\n')
                     
     # Generate random walk path coc
@@ -189,8 +191,9 @@ class MetaPathGenerator:
                 c0 = c
                 for i in xrange(0, numwalks):
                     outline = self.id_client[c0]
+                    c = c0
                     for j in xrange(0, walklength):
-                        o = self.client_offer[c0]
+                        o = self.client_offer[c]
                         numo = len(o)
                         oid = random.randrange(numo)
                         o0 = o[oid]
@@ -198,8 +201,8 @@ class MetaPathGenerator:
                         c1 = self.offer_client[o0]
                         numc = len(c1)
                         cid = random.randrange(numc)
-                        c1 = c1[cid]
-                        outline += '\t' + self.id_client[c1]
+                        c = c1[cid]
+                        outline += '\t' + self.id_client[c]
                     outfile.write(outline + '\n')
                     
 # =============================================================================

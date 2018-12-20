@@ -40,7 +40,7 @@ if __name__ == '__main__':
 		os.makedirs(args.log)
 		print("made the log directory",args.log)
     
-    dataset=Dataset(random_walk_txt=args.walks,node_type_mapping_txt=args.types,window_size=args.window)
+    dataset=Dataset(random_walk_txt=args.walks,node_type_mapping_txt=args.types,window_size=args.window,json_file=None, npz_file=None)
     skip_params = {
                 'VOCAB_SIZE': len(dataset.nodeid2index),
                 'EMBED_SIZE': args.embedding_dim,
